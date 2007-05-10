@@ -42,8 +42,9 @@ if {[catch {
 
     dbi_dml {
         create table test (
-            a integer,
-            b varchar
+            a integer not null,
+            b varchar not null,
+			c bytea
         )
     }
     dbi_dml {insert into test values (1, 'x')}
@@ -104,7 +105,7 @@ test 1row-2 {expect missing row} -constraints table -body {
 
 test 1row-3 {rollback suprise dml} -constraints {knownBug table} -body {
     catch {dbi_1row {insert into test values (0, 'zzz')}} errmsg
-    list $errmsg [dbi_rows {select * from test}]
+    list $errmsg [dbi_rows {select a, b from test}]
 } -result {{query was not a statement returning rows} {1 x 2 y}}
 
 
@@ -156,12 +157,34 @@ test bind-2 {bind long vars} -body {
 	unset -nocomplain a b
 } -result {xxx yyy}
 
+test bind-3 {bind nulls} -body {
+	set a ""
+	set b ""
+	dbi_dml {insert into test (a, b) values (:a, :b)}
+} -cleanup {
+	unset -nocomplain a b
+} -returnCodes error -match glob -result {*null*}
+
+test bind-4 {bind binary w/binary result} -body {
+	set a 9
+	set b binary
+	set c [binary format a8 ""]
+
+	dbi_dml {insert into test (a, b, c) values (:a, :b, :c)}
+	dbi_1row {select c from test where b = :b} ;# as pg text rep.
+	set c
+
+} -cleanup {
+	unset -nocomplain a b c
+	dbi_dml {delete from test where a = 9}
+} -result {\000\000\000\000\000\000\000\000}
+
 
 
 test transaction-1 {transaction ok} -constraints table -body {
     dbi_eval -transaction readcommitted {
         dbi_dml  {insert into test values (3, 'z')}
-        dbi_rows {select * from test order by a}
+        dbi_rows {select a, b from test order by a}
     }
 } -cleanup {
     dbi_dml {delete from test where a = 3}
@@ -174,7 +197,7 @@ test transaction-2 {transaction error w/rollback} -constraints table -body {
             error "error foo"
         }
     } errmsg]} {
-        list $errmsg [dbi_rows {select * from test order by a}]
+        list $errmsg [dbi_rows {select a, b from test order by a}]
     }
 } -result {{error foo} {1 x 2 y}}
 
@@ -184,7 +207,7 @@ test transaction-3 {nested transaction} -constraints table -body {
 		dbi_eval -transaction repeatable {
 			dbi_dml  {update test set b = 'Z' where a = 3}
 		}
-        dbi_rows {select * from test order by a}
+        dbi_rows {select a, b from test order by a}
     }
 } -cleanup {
     dbi_dml {delete from test where a = 3}
@@ -200,7 +223,7 @@ test transaction-4 {nested transaction w/rollback} -constraints table -body {
 			}
 		} errmsg
     }
-	dbi_rows {select * from test order by a}
+	dbi_rows {select a, b from test order by a}
 } -cleanup {
     dbi_dml {delete from test where a = 3}
 } -result {1 x 2 y 3 z}
@@ -209,11 +232,11 @@ test transaction-4 {nested transaction w/rollback} -constraints table -body {
 
 
 test connect-1 {invalid datasource} -body {
-    dbi_1row -pool pool2 {select * from test}
+    dbi_1row -pool pool2 {select a, b from test}
 } -returnCodes error -result {handle allocation failed}
 
 test connect-2 {database does not exist} -body {
-    dbi_1row -pool pool3 {select * from test}
+    dbi_1row -pool pool3 {select a, b from test}
 } -returnCodes error -result {handle allocation failed}
 
 

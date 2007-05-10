@@ -302,15 +302,18 @@ Prepare(Dbi_Handle *handle, Dbi_Statement *stmt,
 
         snprintf(stmtName, sizeof(stmtName), "dbipg_%u", stmt->id);
 
-        res = PQprepare(pgHandle->conn, stmtName, stmt->sql, 0, NULL);
+        res = PQprepare(pgHandle->conn,
+                        stmtName,
+                        stmt->sql,
+                        0,         /* nParams (types specified) */
+                        NULL);     /* paramTypes (OID) */
+
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
             SetException(handle, res);
             PQclear(res);
 
             return NS_ERROR;
         }
-        Ns_Log(Warning, "---> nparams: %u, nfields: %u",
-               PQnparams(res), PQnfields(res));
         PQclear(res);
 
         res = PQdescribePrepared(pgHandle->conn, stmtName);
@@ -387,27 +390,30 @@ PrepareClose(Dbi_Handle *handle, Dbi_Statement *stmt)
 
 static int
 Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
-     CONST char **values, unsigned int *lengths, unsigned int nvalues)
+     Dbi_Value *values, unsigned int numValues)
 {
     PgHandle   *pgHandle = handle->driverData;
     char       *stmtName = stmt->driverData;
+    CONST char *pgValues[DBI_MAX_BIND];
+    int         pgLengths[DBI_MAX_BIND];
+    int         pgFormats[DBI_MAX_BIND];
     PGresult   *res;
-    int        *pglengths, rc;
+    int         i, rc;
 
     (void) Flush(handle, stmt);
 
-    /*
-     * If the length of a bind parameter really is longer then the
-     * max size of a signed integer, we're in trouble...
-     */
-    pglengths = (int *) lengths;
+    for (i = 0; i < numValues; i++) {
+        pgValues[i]  = values[i].data;
+        pgLengths[i] = values[i].length;
+        pgFormats[i] = values[i].binary ? 1 : 0;
+    }
 
     res = PQexecPrepared(pgHandle->conn,
                          stmtName,   /* stmtName */
-                         nvalues,    /* nParams */
-                         values,
-                         pglengths,
-                         NULL,       /* paramFormats (NULL == text) */
+                         numValues,  /* nParams */
+                         pgValues,
+                         pgLengths,
+                         pgFormats,  /* paramFormats (NULL == text) */
                          0);         /* resultFormat (0 == text) */
 
     rc = PQresultStatus(res);
