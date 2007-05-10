@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ulimit -v 200000 -m 200000 -d 200000
+exec make runtest NAVISERVER=/home/sd/bin/ns TCLTESTARGS="-verbose 1 -debug 1"
