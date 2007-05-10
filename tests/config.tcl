@@ -15,7 +15,7 @@ set bindir    [file dirname [ns_info nsd]]
 ns_section "ns/parameters"
 ns_param   home           $homedir
 ns_param   tcllibrary     $bindir/../tcl
-ns_param   logdebug       true
+ns_param   logdebug       false
 
 ns_section "ns/modules"
 ns_param   nssock         $bindir/nssock.so
