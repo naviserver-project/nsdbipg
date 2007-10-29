@@ -241,6 +241,22 @@ test connect-2 {database does not exist} -body {
 
 
 
+test thread-1 {per-thread handles} -body {
+    ns_thread wait [ns_thread begin {
+        dbi_rows -pool thread {select a, b from test}
+        dbi_rows -pool thread {select a, b from test}
+    }]
+} -result {1 x 2 y}
+
+test thread-2 {per-thread handle w/broken pool} -body {
+    ns_thread wait [ns_thread begin {
+        dbi_rows -pool thread2 {select a, b from test}
+    }]
+} -match glob -result {handle allocation failed*}
+
+
+
+
 catch {
 	dbi_dml {drop table test}
 }

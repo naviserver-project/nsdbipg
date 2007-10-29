@@ -127,6 +127,8 @@ Ns_ModuleInit(CONST char *server, CONST char *module)
     CONST char *drivername = "pg";
     CONST char *database   = "postgres";
 
+    Dbi_LibInit();
+
     path = Ns_ConfigGetPath(server, module, NULL);
 
     pgCfg = ns_malloc(sizeof(PgConfig));
@@ -440,7 +442,7 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
  *      Fetch the next value in the pending result set.
  *
  * Results:
- *      DBI_VALUE, DBI_DONE or DBI_ERROR.
+ *      NS_OK or NS_ERROR.
  *
  * Side effects:
  *      None.
@@ -450,33 +452,40 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
 
 static int
 NextValue(Dbi_Handle *handle, Dbi_Statement *stmt,
-          unsigned int colIdx, unsigned int rowIdx, Dbi_Value *value)
+          Dbi_Value *value, int *endPtr)
 {
     PgHandle *pgHandle = handle->driverData;
 
-    if (rowIdx >= PQntuples(pgHandle->res)) {
-        return DBI_DONE;
+    /*
+     * Notify dbi after the last row has been returned.
+     */
+
+    if (value->rowIdx >= PQntuples(pgHandle->res)) {
+        *endPtr = 1;
+        return NS_OK;
     }
 
-    value->data   = PQgetvalue(pgHandle->res, (int) rowIdx, (int) colIdx);
-    value->length = PQgetlength(pgHandle->res, (int) rowIdx, (int) colIdx);
-    value->binary = 0;
-
+    value->data = PQgetvalue(pgHandle->res,
+                               (int) value->rowIdx, (int) value->colIdx);
     if (value->data == NULL) {
         Dbi_SetException(handle, "PGSQL",
                          "bad row or column index while fetching value: "
                          "column: %u row: %u",
-                         colIdx, rowIdx);
-        return DBI_ERROR;
+                         value->colIdx, value->rowIdx);
+        return NS_ERROR;
     }
 
-    if (PQgetisnull(pgHandle->res, (int) rowIdx, (int) colIdx)) {
-        /*
-         * Postgres returns null values as zero length strings, nsdbi
-         * expects a NULL.
-         */
+    /*
+     * Postgres returns null values as zero length strings, nsdbi
+     * expects a NULL.
+     */
+
+    if (PQgetisnull(pgHandle->res, (int) value->rowIdx, (int) value->colIdx)) {
         value->data = NULL;
     }
+
+    value->length = PQgetlength(pgHandle->res,
+                                (int) value->rowIdx, (int) value->colIdx);
 
     /*
      * FIXME: Identify bytea and blob by pg oid and decode to byte
@@ -484,7 +493,9 @@ NextValue(Dbi_Handle *handle, Dbi_Statement *stmt,
      *        in a binary format.
      */
 
-    return DBI_VALUE;
+    value->binary = 0;
+
+    return NS_OK;
 }
 
 
