@@ -54,10 +54,11 @@ typedef struct PGConfig {
 
 typedef struct PgHandle {
 
-    PgConfig  *pgCfg; /* Pool configuration. */
+    PgConfig  *pgCfg;  /* Pool configuration. */
 
-    PGconn    *conn;  /* Connection to postgres backend. */
-    PGresult  *res;   /* Current result. */
+    PGconn    *conn;   /* Connection to postgres backend. */
+    PGresult  *res;    /* Current result. */
+    int        rowIdx; /* Current row of result being processed. */
 
 } PgHandle;
 
@@ -73,7 +74,9 @@ static Dbi_BindVarProc      Bind;
 static Dbi_PrepareProc      Prepare;
 static Dbi_PrepareCloseProc PrepareClose;
 static Dbi_ExecProc         Exec;
-static Dbi_NextValueProc    NextValue;
+static Dbi_NextRowProc      NextRow;
+static Dbi_ColumnLengthProc ColumnLength;
+static Dbi_ColumnValueProc  ColumnValue;
 static Dbi_ColumnNameProc   ColumnName;
 static Dbi_TransactionProc  Transaction;
 static Dbi_FlushProc        Flush;
@@ -94,7 +97,9 @@ static Dbi_DriverProc procs[] = {
     {Dbi_PrepareProcId,      Prepare},
     {Dbi_PrepareCloseProcId, PrepareClose},
     {Dbi_ExecProcId,         Exec},
-    {Dbi_NextValueProcId,    NextValue},
+    {Dbi_NextRowProcId,      NextRow},
+    {Dbi_ColumnLengthProcId, ColumnLength},
+    {Dbi_ColumnValueProcId,  ColumnValue},
     {Dbi_ColumnNameProcId,   ColumnName},
     {Dbi_TransactionProcId,  Transaction},
     {Dbi_FlushProcId,        Flush},
@@ -429,6 +434,7 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
     }
 
     pgHandle->res = res;
+    pgHandle->rowIdx = -1;
 
     return NS_OK;
 }
@@ -437,12 +443,12 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
 /*
  *----------------------------------------------------------------------
  *
- * NextValue --
+ * NextRow --
  *
- *      Fetch the next value in the pending result set.
+ *      Increment the row index.
  *
  * Results:
- *      NS_OK or NS_ERROR.
+ *      NS_OK, endPtr set to 1 after last row fetched.
  *
  * Side effects:
  *      None.
@@ -451,41 +457,48 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
  */
 
 static int
-NextValue(Dbi_Handle *handle, Dbi_Statement *stmt,
-          Dbi_Value *value, int *endPtr)
+NextRow(Dbi_Handle *handle, Dbi_Statement *stmt, int *endPtr)
 {
     PgHandle *pgHandle = handle->driverData;
 
-    /*
-     * Notify dbi after the last row has been returned.
-     */
+    pgHandle->rowIdx++;
 
-    if (value->rowIdx >= PQntuples(pgHandle->res)) {
+    if (pgHandle->rowIdx >= PQntuples(pgHandle->res)) {
         *endPtr = 1;
-        return NS_OK;
     }
 
-    value->data = PQgetvalue(pgHandle->res,
-                               (int) value->rowIdx, (int) value->colIdx);
-    if (value->data == NULL) {
-        Dbi_SetException(handle, "PGSQL",
-                         "bad row or column index while fetching value: "
-                         "column: %u row: %u",
-                         value->colIdx, value->rowIdx);
-        return NS_ERROR;
+    return NS_OK;
+}
+
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ColumnLength --
+ *
+ *      Return the length of the column value and it's text/binary
+ *      type after a NextRow(). Null values are 0 length.
+ *
+ * Results:
+ *      NS_OK;
+ *
+ * Side effects:
+ *      None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+ColumnLength(Dbi_Handle *handle, Dbi_Statement *stmt, unsigned int index,
+             size_t *lengthPtr, int *binaryPtr)
+{
+    PgHandle *pgHandle = handle->driverData;
+
+    if (PQgetisnull(pgHandle->res, pgHandle->rowIdx, (int) index)) {
+        *lengthPtr = 0;
+    } else {
+        *lengthPtr = PQgetlength(pgHandle->res, pgHandle->rowIdx, (int) index);
     }
-
-    /*
-     * Postgres returns null values as zero length strings, nsdbi
-     * expects a NULL.
-     */
-
-    if (PQgetisnull(pgHandle->res, (int) value->rowIdx, (int) value->colIdx)) {
-        value->data = NULL;
-    }
-
-    value->length = PQgetlength(pgHandle->res,
-                                (int) value->rowIdx, (int) value->colIdx);
 
     /*
      * FIXME: Identify bytea and blob by pg oid and decode to byte
@@ -493,7 +506,47 @@ NextValue(Dbi_Handle *handle, Dbi_Statement *stmt,
      *        in a binary format.
      */
 
-    value->binary = 0;
+    *binaryPtr = 0;
+
+    return NS_OK;
+}
+
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ColumnValue --
+ *
+ *      Fetch the indicated value from the current row.
+ *
+ * Results:
+ *      NS_OK.
+ *
+ * Side effects:
+ *      None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+ColumnValue(Dbi_Handle *handle, Dbi_Statement *stmt, unsigned int index,
+            char *value, size_t maxLength)
+{
+    PgHandle *pgHandle = handle->driverData;
+    char     *src;
+    int       srclen;
+
+    src = PQgetvalue(pgHandle->res, pgHandle->rowIdx, (int) index);
+    if (src == NULL) {
+        Dbi_SetException(handle, "PGSQL",
+                         "bad row or column index while fetching value: "
+                         "column: %u row: %u",
+                         index, pgHandle->rowIdx);
+        return NS_ERROR;
+    }
+    srclen = PQgetlength(pgHandle->res, pgHandle->rowIdx, (int) index);
+
+    memcpy(value, src, MIN(maxLength, srclen));
 
     return NS_OK;
 }
