@@ -176,12 +176,38 @@ Open(ClientData configData, Dbi_Handle *handle)
         PQfinish(conn);
         return NS_ERROR;
     }
+
+    /*
+     * Make sure the database is expecting and returning utf8 character data.
+     */
+
+    if (PQsetClientEncoding(conn, "UTF8") != 0) {
+        Dbi_SetException(handle, "PGSQL", "failed to set UTF-8 encoding");
+        PQfinish(conn);
+        return NS_ERROR;
+    }
+
     pgHandle = ns_calloc(1, sizeof(PgHandle));
     pgHandle->pgCfg = pgCfg;
     pgHandle->conn = conn;
     handle->driverData = pgHandle;
 
     (void) PQsetNoticeProcessor(conn, NoticeProcessor, pgCfg);
+
+    /*
+     * Make sure the database is expecting and returning utf8 character data.
+     * Set the timezone to UTC and the datestyle to ISO.
+     */
+
+    if (Dbi_ExecDirect(handle, "set session client_encoding = 'UTF8'") != NS_OK
+        || Dbi_ExecDirect(handle, "set session timezone = 'UTC'") != NS_OK
+        || Dbi_ExecDirect(handle, "set session datestyle = 'ISO'") != NS_OK) {
+
+        PQfinish(pgHandle->conn);
+        ns_free(pgHandle);
+        handle->driverData = NULL;
+        return NS_ERROR;
+    }
 
     Dbi_SetException(handle, "00000", "server version: %d protocol version: %d",
                      PQserverVersion(conn), PQprotocolVersion(conn));
