@@ -44,11 +44,12 @@ if {[catch {
         create table test (
             a integer not null,
             b varchar not null,
-			c bytea
+            c bytea,
+            test varchar
         )
     }
-    dbi_dml {insert into test values (1, 'x')}
-    dbi_dml {insert into test values (2, 'y')}
+    dbi_dml {insert into test (a, b, test) values (1, 'x', 'test1')}
+    dbi_dml {insert into test (a, b, test) values (2, 'y', 'test2')}
 
 } err]} {
     ns_log error $err
@@ -89,6 +90,10 @@ test rows-6 {duplicate statement} -constraints table -body {
 test rows-7 {NULLs} -constraints table -body {
     dbi_rows {select NULL, NULL, NULL}
 } -result {{} {} {}}
+
+test rows-8 {column name matches table name bug} -constraints table -body {
+    dbi_rows {select a, test from test} {$a $test }
+} -result {1 test1 2 test2 }
 
 
 
