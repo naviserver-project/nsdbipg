@@ -23,21 +23,27 @@
 #
 #
 
-VERSION     = 0.2
+VERSION     = 0.3
 
-NAVISERVER  = /usr/local/ns
-NSD			= $(NAVISERVER)/bin/nsd
+ifndef NAVISERVER
+    NAVISERVER  = /usr/local/ns
+endif
 
-PGINDIR		= /usr/include
-PGLIBDIR	= /usr/lib
+ifndef PGINCLUDE
+    PGINCLUDE	= /usr/include
+endif
 
-CFLAGS      += -I$(PGINCDIR)
+ifndef PGLIB
+    PGLIB	= /usr/lib
+endif
 
+NSD		= $(NAVISERVER)/bin/nsd
+CFLAGS      +=	-I$(PGINCLUDE)
 MODNAME		= nsdbipg
 
-MOD			= $(MODNAME).so
+MOD		= $(MODNAME).so
 MODOBJS		= $(MODNAME).o
-MODLIBS		= -lnsdbi -L$(PGLIBDIR) -lpq
+MODLIBS		= -lnsdbi -L$(PGLIB) -lpq
 
 
 include $(NAVISERVER)/include/Makefile.module
@@ -52,8 +58,8 @@ export DBIPG_PASSWORD=dbipg
 export DBIPG_DBNAME=dbipg
 
 
-NS_TEST_CFG		= -c -d -t tests/config.tcl
-NS_TEST_ALL		= tests/all.tcl $(TCLTESTARGS)
+NS_TEST_CFG	= -c -d -t tests/config.tcl
+NS_TEST_ALL	= tests/all.tcl $(TCLTESTARGS)
 LD_LIBRARY_PATH	= LD_LIBRARY_PATH="./::$$LD_LIBRARY_PATH"
 
 test: all
