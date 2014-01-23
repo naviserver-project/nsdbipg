@@ -90,20 +90,20 @@ static void SetException(Dbi_Handle *handle, PGresult *res);
  */
 
 static Dbi_DriverProc procs[] = {
-    {Dbi_OpenProcId,         Open},
-    {Dbi_CloseProcId,        Close},
-    {Dbi_ConnectedProcId,    Connected},
-    {Dbi_BindVarProcId,      Bind},
-    {Dbi_PrepareProcId,      Prepare},
-    {Dbi_PrepareCloseProcId, PrepareClose},
-    {Dbi_ExecProcId,         Exec},
-    {Dbi_NextRowProcId,      NextRow},
-    {Dbi_ColumnLengthProcId, ColumnLength},
-    {Dbi_ColumnValueProcId,  ColumnValue},
-    {Dbi_ColumnNameProcId,   ColumnName},
-    {Dbi_TransactionProcId,  Transaction},
-    {Dbi_FlushProcId,        Flush},
-    {Dbi_ResetProcId,        Reset},
+    {Dbi_OpenProcId,         (Ns_Callback *) Open},
+    {Dbi_CloseProcId,        (Ns_Callback *) Close},
+    {Dbi_ConnectedProcId,    (Ns_Callback *) Connected},
+    {Dbi_BindVarProcId,      (Ns_Callback *) Bind},
+    {Dbi_PrepareProcId,      (Ns_Callback *) Prepare},
+    {Dbi_PrepareCloseProcId, (Ns_Callback *) PrepareClose},
+    {Dbi_ExecProcId,         (Ns_Callback *) Exec},
+    {Dbi_NextRowProcId,      (Ns_Callback *) NextRow},
+    {Dbi_ColumnLengthProcId, (Ns_Callback *) ColumnLength},
+    {Dbi_ColumnValueProcId,  (Ns_Callback *) ColumnValue},
+    {Dbi_ColumnNameProcId,   (Ns_Callback *) ColumnName},
+    {Dbi_TransactionProcId,  (Ns_Callback *) Transaction},
+    {Dbi_FlushProcId,        (Ns_Callback *) Flush},
+    {Dbi_ResetProcId,        (Ns_Callback *) Reset},
     {0, NULL}
 };
 
@@ -328,10 +328,10 @@ Prepare(Dbi_Handle *handle, Dbi_Statement *stmt,
         unsigned int *numVarsPtr, unsigned int *numColsPtr)
 {
     PgHandle    *pgHandle = handle->driverData;
-    PGresult    *res;
-    char         stmtName[64];
 
     if (stmt->driverData == NULL) {
+	char         stmtName[64];
+	PGresult    *res;
 
         snprintf(stmtName, sizeof(stmtName), "dbipg_%u", stmt->id);
 
