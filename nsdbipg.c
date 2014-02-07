@@ -360,6 +360,9 @@ Prepare(Dbi_Handle *handle, Dbi_Statement *stmt,
         *numVarsPtr = (unsigned int) PQnparams(res);
         *numColsPtr = (unsigned int) PQnfields(res);
 
+	Ns_Log(Debug, "dbipg: prepare %s/%u cols %u: %s", 
+	       stmtName, *numVarsPtr, *numColsPtr, stmt->sql);
+
         PQclear(res);
 
         stmt->driverData = ns_strdup(stmtName);
@@ -452,11 +455,19 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
     rc = PQresultStatus(res);
 
     if (rc != PGRES_TUPLES_OK
-            && rc != PGRES_COMMAND_OK) {
+	&& rc != PGRES_COMMAND_OK) {
 
         SetException(handle, res);
         PQclear(res);
         return NS_ERROR;
+    }
+
+    /*
+     * In case of a DML command, set handle->numRowsHint 
+     * to the number of affected rows
+     */
+    if (rc == PGRES_COMMAND_OK) {
+	handle->numRowsHint = atoi(PQcmdTuples(res));
     }
 
     pgHandle->res = res;
