@@ -44,6 +44,7 @@ typedef struct PGConfig {
 
     CONST char *module;
     CONST char *datasource;
+    CONST char *sessionTimezone;
 
 } PgConfig;
 
@@ -127,10 +128,10 @@ static Dbi_DriverProc procs[] = {
 NS_EXPORT int
 Ns_ModuleInit(CONST char *server, CONST char *module)
 {
-    PgConfig   *pgCfg;
-    char       *path;
-    CONST char *drivername = "pg";
-    CONST char *database   = "postgres";
+    PgConfig    *pgCfg;
+    char        *path;
+    CONST char  *drivername = "pg";
+    CONST char  *database   = "postgres", *cfgValue;
 
     Dbi_LibInit();
 
@@ -139,7 +140,28 @@ Ns_ModuleInit(CONST char *server, CONST char *module)
     pgCfg = ns_malloc(sizeof(PgConfig));
     pgCfg->module           = ns_strdup(module);
     pgCfg->datasource       = Ns_ConfigString(path, "datasource", "connect_timeout=30");
+    cfgValue                = Ns_ConfigString(path, "session_timezone", "");
 
+    /*
+     * If the parameter session_timeout is specified not empty, set
+     * for every opened session the PostgreSQL session variable
+     * "timezone" to the specified value. Compute the command issued
+     * for every session at startup time.
+     */
+    if (cfgValue && *cfgValue) {
+	Tcl_DString ds, *dsPtr = NULL;
+
+	dsPtr = &ds;
+	Tcl_DStringInit(dsPtr);
+	Tcl_DStringAppend(dsPtr, "set session timezone = '", -1);
+	Tcl_DStringAppend(dsPtr, cfgValue, -1);
+	Tcl_DStringAppend(dsPtr, "'", 1);
+	pgCfg->sessionTimezone  = ns_strdup(Tcl_DStringValue(dsPtr)); 
+	Tcl_DStringFree(dsPtr);
+    } else {
+	pgCfg->sessionTimezone  = NULL;
+    }
+ 
     return Dbi_RegisterDriver(server, module,
                               drivername, database,
                               procs, pgCfg);
@@ -165,9 +187,9 @@ Ns_ModuleInit(CONST char *server, CONST char *module)
 static int
 Open(ClientData configData, Dbi_Handle *handle)
 {
-    PgConfig *pgCfg = configData;
-    PgHandle *pgHandle;
-    PGconn   *conn;
+    PgConfig   *pgCfg = configData;
+    PgHandle   *pgHandle;
+    PGconn     *conn;
 
     conn = PQconnectdb(pgCfg->datasource);
 
@@ -200,7 +222,7 @@ Open(ClientData configData, Dbi_Handle *handle)
      */
 
     if (Dbi_ExecDirect(handle, "set session client_encoding = 'UTF8'") != NS_OK
-        || Dbi_ExecDirect(handle, "set session timezone = 'UTC'") != NS_OK
+        || (pgCfg->sessionTimezone && Dbi_ExecDirect(handle, pgCfg->sessionTimezone) != NS_OK)
         || Dbi_ExecDirect(handle, "set session datestyle = 'ISO'") != NS_OK) {
 
         PQfinish(pgHandle->conn);
