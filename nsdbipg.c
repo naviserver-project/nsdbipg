@@ -194,7 +194,7 @@ Open(ClientData configData, Dbi_Handle *handle)
     conn = PQconnectdb(pgCfg->datasource);
 
     if (PQstatus(conn) != CONNECTION_OK) {
-        Dbi_SetException(handle, "PGSQL", PQerrorMessage(conn));
+      Dbi_SetException(handle, "PGSQL", "%s", PQerrorMessage(conn));
         PQfinish(conn);
         return NS_ERROR;
     }
@@ -382,7 +382,7 @@ Prepare(Dbi_Handle *handle, Dbi_Statement *stmt,
         *numVarsPtr = (unsigned int) PQnparams(res);
         *numColsPtr = (unsigned int) PQnfields(res);
 
-	Ns_Log(Debug, "dbipg: prepare %s/%u cols %u: %s", 
+	Ns_Log(Notice, "dbipg: prepare %s/%u cols %u: %s", 
 	       stmtName, *numVarsPtr, *numColsPtr, stmt->sql);
 
         PQclear(res);
@@ -814,7 +814,6 @@ NoticeProcessor(void *arg, const char *message)
 static void
 SetException(Dbi_Handle *handle, PGresult *res)
 {
-    Dbi_SetException(handle,
-                     PQresultErrorField(res, PG_DIAG_SQLSTATE),
-                     PQresultErrorField(res, PG_DIAG_MESSAGE_PRIMARY));
+    Dbi_SetException(handle, PQresultErrorField(res, PG_DIAG_SQLSTATE),
+                     "%s", PQresultErrorField(res, PG_DIAG_MESSAGE_PRIMARY));
 }
