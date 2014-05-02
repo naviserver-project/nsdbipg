@@ -4,4 +4,8 @@ to a NaviServer web server using the nsdbi interface.
 
 It provides no new commands. See nsdbi.n for database command details.
 
+For building, you might use e.g.
+
+   make PGLIB=/opt/local/lib/postgresql93/ PGINCLUDE=/opt/local/include/postgresql93/
+
 See sample-config.tcl for setup details.
