@@ -126,12 +126,12 @@ static Dbi_DriverProc procs[] = {
  */
 
 NS_EXPORT int
-Ns_ModuleInit(CONST char *server, CONST char *module)
+Ns_ModuleInit(const char *server, const char *module)
 {
     PgConfig    *pgCfg;
-    char        *path;
-    CONST char  *drivername = "pg";
-    CONST char  *database   = "postgres", *cfgValue;
+    const char  *path;
+    const char  *drivername = "pg";
+    const char  *database   = "postgres", *cfgValue;
 
     Dbi_LibInit();
 
