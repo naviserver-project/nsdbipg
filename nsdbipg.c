@@ -42,9 +42,9 @@ NS_EXPORT int Ns_ModuleVersion = 1;
 
 typedef struct PGConfig {
 
-    CONST char *module;
-    CONST char *datasource;
-    CONST char *sessionTimezone;
+    const char *module;
+    const char *datasource;
+    const char *sessionTimezone;
 
 } PgConfig;
 
@@ -322,7 +322,7 @@ Connected(Dbi_Handle *handle)
  */
 
 static void
-Bind(Ns_DString *ds, CONST char *name, int bindIdx)
+Bind(Ns_DString *ds, const char *name, int bindIdx)
 {
     Ns_DStringPrintf(ds, "$%d", bindIdx + 1);
 }
@@ -452,7 +452,7 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
 {
     PgHandle   *pgHandle = handle->driverData;
     char       *stmtName = stmt->driverData;
-    CONST char *pgValues[DBI_MAX_BIND];
+    const char *pgValues[DBI_MAX_BIND];
     int         pgLengths[DBI_MAX_BIND];
     int         pgFormats[DBI_MAX_BIND];
     PGresult   *res;
@@ -629,7 +629,7 @@ ColumnValue(Dbi_Handle *handle, Dbi_Statement *stmt, unsigned int index,
 
 static int
 ColumnName(Dbi_Handle *handle, Dbi_Statement *stmt,
-           unsigned int index, CONST char **column)
+           unsigned int index, const char **column)
 {
     PgHandle *pgHandle = handle->driverData;
 
@@ -665,9 +665,9 @@ Transaction(Dbi_Handle *handle, unsigned int depth,
 {
     PgHandle   *pgHandle = handle->driverData;
     Ns_DString  ds;
-    CONST char *sql;
+    const char *sql;
 
-    static CONST char *levels[] = {
+    static const char *levels[] = {
         "read uncommitted", /* Dbi_ReadUncommitted */
         "read committed",   /* Dbi_ReadCommitted */
         "repeatable read",  /* Dbi_RepeatableRead */
