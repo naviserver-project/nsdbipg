@@ -1,7 +1,7 @@
 
 2008-06-10 nsdbipg-0.2 released
 
-* Set conection to utf-8 encoding. Default timezone to UTC, and
+* Set connection to utf-8 encoding. Default timezone to UTC, and
   date format to ISO.
 
 * Update for new nsdbi-0.2 interface
