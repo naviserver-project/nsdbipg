@@ -2,7 +2,7 @@
 # nsdbipg configuration example.
 #
 #     The nsdbipg Postgres database driver takes only one
-#     extra configuration parmeter: datasource.
+#     extra configuration parameter: datasource.
 #
 #     Format is: "key=value key='value'". Values may be single quoted.
 #
