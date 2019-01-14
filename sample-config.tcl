@@ -12,14 +12,14 @@
 # Global pools.
 #
 ns_section "ns/modules"
-ns_param   pool1          $bindir/nsdbipg.so
+ns_param   pool1          nsdbipg.so
 
 
 #
 # Private pools
 #
 ns_section "ns/server/server1/modules"
-ns_param   pool2          $bindir/nsdbipg.so
+ns_param   pool2         nsdbipg.so
 
 
 #
