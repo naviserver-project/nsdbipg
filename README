@@ -8,6 +8,6 @@ For building, you might use e.g.
 
     make PGLIB=/opt/local/lib/postgresql10/ PGINCLUDE=/opt/local/include/postgresql10/
 
-Sample Config file: sample-config.tcl
+Configuration example: sample-config.tcl
 
 Generic DBI interface: https://bitbucket.org/naviserver/nsdbi/
