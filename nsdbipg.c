@@ -32,7 +32,7 @@
 #include "libpq-fe.h"
 
 
-
+NS_EXTERN int Ns_ModuleVersion;
 NS_EXPORT int Ns_ModuleVersion = 1;
 
 
@@ -108,6 +108,7 @@ static Dbi_DriverProc procs[] = {
     {0, NULL}
 };
 
+Ns_ModuleInitProc Ns_ModuleInit;
 
 /*
  *----------------------------------------------------------------------
@@ -322,7 +323,7 @@ Connected(Dbi_Handle *handle)
  */
 
 static void
-Bind(Ns_DString *ds, const char *name, int bindIdx)
+Bind(Ns_DString *ds, const char *UNUSED(name), int bindIdx)
 {
     Ns_DStringPrintf(ds, "$%d", bindIdx + 1);
 }
@@ -456,19 +457,20 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
     int         pgLengths[DBI_MAX_BIND];
     int         pgFormats[DBI_MAX_BIND];
     PGresult   *res;
-    int         i, rc;
+    int         rc;
+    unsigned int i;
 
     (void) Flush(handle, stmt);
 
     for (i = 0; i < numValues; i++) {
         pgValues[i]  = values[i].data;
-        pgLengths[i] = values[i].length;
+        pgLengths[i] = (int)values[i].length;
         pgFormats[i] = values[i].binary ? 1 : 0;
     }
 
     res = PQexecPrepared(pgHandle->conn,
                          stmtName,   /* stmtName */
-                         numValues,  /* nParams */
+                         (int)numValues,  /* nParams */
                          pgValues,
                          pgLengths,
                          pgFormats,  /* paramFormats (NULL == text) */
@@ -516,7 +518,7 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
  */
 
 static int
-NextRow(Dbi_Handle *handle, Dbi_Statement *stmt, int *endPtr)
+NextRow(Dbi_Handle *handle, Dbi_Statement *UNUSED(stmt), int *endPtr)
 {
     PgHandle *pgHandle = handle->driverData;
 
@@ -548,7 +550,7 @@ NextRow(Dbi_Handle *handle, Dbi_Statement *stmt, int *endPtr)
  */
 
 static int
-ColumnLength(Dbi_Handle *handle, Dbi_Statement *stmt, unsigned int index,
+ColumnLength(Dbi_Handle *handle, Dbi_Statement *UNUSED(stmt), unsigned int index,
              size_t *lengthPtr, int *binaryPtr)
 {
     PgHandle *pgHandle = handle->driverData;
@@ -556,7 +558,7 @@ ColumnLength(Dbi_Handle *handle, Dbi_Statement *stmt, unsigned int index,
     if (PQgetisnull(pgHandle->res, pgHandle->rowIdx, (int) index)) {
         *lengthPtr = 0;
     } else {
-        *lengthPtr = PQgetlength(pgHandle->res, pgHandle->rowIdx, (int) index);
+        *lengthPtr = (size_t)PQgetlength(pgHandle->res, pgHandle->rowIdx, (int) index);
     }
 
     /*
@@ -588,12 +590,12 @@ ColumnLength(Dbi_Handle *handle, Dbi_Statement *stmt, unsigned int index,
  */
 
 static int
-ColumnValue(Dbi_Handle *handle, Dbi_Statement *stmt, unsigned int index,
+ColumnValue(Dbi_Handle *handle, Dbi_Statement *UNUSED(stmt), unsigned int index,
             char *value, size_t maxLength)
 {
     PgHandle *pgHandle = handle->driverData;
     char     *src;
-    int       srclen;
+    size_t    srclen;
 
     src = PQgetvalue(pgHandle->res, pgHandle->rowIdx, (int) index);
     if (src == NULL) {
@@ -603,7 +605,7 @@ ColumnValue(Dbi_Handle *handle, Dbi_Statement *stmt, unsigned int index,
                          index, pgHandle->rowIdx);
         return NS_ERROR;
     }
-    srclen = PQgetlength(pgHandle->res, pgHandle->rowIdx, (int) index);
+    srclen = (size_t)PQgetlength(pgHandle->res, pgHandle->rowIdx, (int) index);
 
     memcpy(value, src, MIN(maxLength, srclen));
 
@@ -628,12 +630,12 @@ ColumnValue(Dbi_Handle *handle, Dbi_Statement *stmt, unsigned int index,
  */
 
 static int
-ColumnName(Dbi_Handle *handle, Dbi_Statement *stmt,
+ColumnName(Dbi_Handle *handle, Dbi_Statement *UNUSED(stmt),
            unsigned int index, const char **column)
 {
     PgHandle *pgHandle = handle->driverData;
 
-    if ((*column = PQfname(pgHandle->res, index)) == NULL) {
+    if ((*column = PQfname(pgHandle->res, (int)index)) == NULL) {
         Dbi_SetException(handle, "PGSQL",
             "bug: bad column index while fetching value: column: %u", index);
         return NS_ERROR;
@@ -694,8 +696,9 @@ Transaction(Dbi_Handle *handle, unsigned int depth,
             : "rollback";
         break;
 
-    default:
-        Ns_Fatal("dbipg: Transaction: unhandled cmd: %d", (int) cmd);
+	/* default:
+	   Ns_Fatal("dbipg: Transaction: unhandled cmd: %d", (int) cmd);
+	*/
     }
 
     if (sql != NULL && Dbi_ExecDirect(handle, sql) != NS_OK) {
@@ -727,7 +730,7 @@ Transaction(Dbi_Handle *handle, unsigned int depth,
  */
 
 static int
-Flush(Dbi_Handle *handle, Dbi_Statement *stmt)
+Flush(Dbi_Handle *handle, Dbi_Statement *UNUSED(stmt))
 {
     PgHandle *pgHandle = handle->driverData;
 
