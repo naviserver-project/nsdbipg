@@ -34,8 +34,8 @@ ns_param   default        true ;# This is the default pool for server1.
 ns_param   handles        2    ;# Max open handles to db.
 ns_param   maxwait        10   ;# Seconds to wait if handle unavailable.
 ns_param   maxidle        0    ;# Handle closed after maxidle seconds if unused.
-ns_param   maxopen        0    ;# Handle closed after maxopen seconds, regardles of use.
-ns_param   maxqueries     0    ;# Handle closed after maxqueries sql queries.
+ns_param   maxopen        0    ;# Handle closed after maxopen seconds, regardless of use.
+ns_param   maxqueries     0    ;# Handle closed after maxqueries SQL queries.
 ns_param   checkinterval  600  ;# Check for idle handles every 10 minutes.
 #
 # The following is the postgres connection info that specifies
