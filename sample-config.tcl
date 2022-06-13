@@ -39,7 +39,7 @@ ns_param   maxqueries     0    ;# Handle closed after maxqueries SQL queries.
 ns_param   checkinterval  600  ;# Check for idle handles every 10 minutes.
 #
 # The following is the postgres connection info that specifies
-# which database to connect to, user name, etc.
+# which database to connect to, username, etc.
 #
 # See Postgres docs for full details of format and options available.
 #
