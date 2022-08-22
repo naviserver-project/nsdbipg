@@ -696,9 +696,9 @@ Transaction(Dbi_Handle *handle, unsigned int depth,
             : "rollback";
         break;
 
-	/* default:
-	   Ns_Fatal("dbipg: Transaction: unhandled cmd: %d", (int) cmd);
-	*/
+    default:
+        sql = NULL;
+        break;
     }
 
     if (sql != NULL && Dbi_ExecDirect(handle, sql) != NS_OK) {
