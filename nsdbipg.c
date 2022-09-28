@@ -457,7 +457,7 @@ Exec(Dbi_Handle *handle, Dbi_Statement *stmt,
     int         pgLengths[DBI_MAX_BIND];
     int         pgFormats[DBI_MAX_BIND];
     PGresult   *res;
-    int         rc;
+    ExecStatusType rc;
     unsigned int i;
 
     (void) Flush(handle, stmt);
