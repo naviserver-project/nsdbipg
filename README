@@ -8,7 +8,7 @@ For building, you might use e.g.
 
     PG=/usr/local/pg965 && make PGLIB=$PG/lib PGINCLUDE=$PG/include
 or
-    PGPATH=postgresql14 && make PGLIB=/opt/local/lib/$PGPATH/ PGINCLUDE=/opt/local/include/$PGPATH/
+    PGPATH=postgresql16 && make PGLIB=/opt/local/lib/$PGPATH/ PGINCLUDE=/opt/local/include/$PGPATH/
 
 Configuration example: sample-config.tcl
 
