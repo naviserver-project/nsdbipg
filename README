@@ -1,8 +1,10 @@
 
-This is the nsdbipg database driver. It connects a Postgres database
+This is the nsdbipg database driver. It connects a PostgreSQL database
 to a NaviServer web server using the nsdbi interface.
 
 It provides no new commands. See nsdbi.n for database command details.
+
+Compatibility: The module compiles with Tcl 8.5, 8.6 and 9.0.
 
 For building, you might use e.g.
 
