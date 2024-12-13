@@ -126,7 +126,7 @@ Ns_ModuleInitProc Ns_ModuleInit;
  *----------------------------------------------------------------------
  */
 
-NS_EXPORT int
+NS_EXPORT Ns_ReturnCode
 Ns_ModuleInit(const char *server, const char *module)
 {
     PgConfig    *pgCfg;
