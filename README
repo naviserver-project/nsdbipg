@@ -10,8 +10,8 @@ For building, you might use e.g.
 
     PG=/usr/local/pg965 && make PGLIB=$PG/lib PGINCLUDE=$PG/include
 or
-    PGPATH=postgresql16 && make PGLIB=/opt/local/lib/$PGPATH/ PGINCLUDE=/opt/local/include/$PGPATH/
+    PGPATH=postgresql17 && make PGLIB=/opt/local/lib/$PGPATH/ PGINCLUDE=/opt/local/include/$PGPATH/
 
 Configuration example: sample-config.tcl
 
-Generic DBI interface: https://bitbucket.org/naviserver/nsdbi/
+Generic DBI interface: https://github.com/naviserver-project/nsdbi
