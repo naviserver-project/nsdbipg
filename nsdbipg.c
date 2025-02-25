@@ -323,7 +323,7 @@ Connected(Dbi_Handle *handle)
  */
 
 static void
-Bind(Ns_DString *ds, const char *UNUSED(name), int bindIdx)
+Bind(Tcl_DString *ds, const char *UNUSED(name), int bindIdx)
 {
     Ns_DStringPrintf(ds, "$%d", bindIdx + 1);
 }
@@ -415,15 +415,15 @@ static void
 PrepareClose(Dbi_Handle *handle, Dbi_Statement *stmt)
 {
     char       *stmtName = stmt->driverData;
-    Ns_DString  ds;
+    Tcl_DString ds;
 
     if (stmtName != NULL) {
 
         if (Connected(handle)) {
-            Ns_DStringInit(&ds);
+            Tcl_DStringInit(&ds);
             Ns_DStringPrintf(&ds, "deallocate %s", stmtName);
-            (void) Dbi_ExecDirect(handle, Ns_DStringValue(&ds));
-            Ns_DStringFree(&ds);
+            (void) Dbi_ExecDirect(handle, ds.string);
+            Tcl_DStringFree(&ds);
         }
         ns_free(stmtName);
         stmt->driverData = NULL;
@@ -666,7 +666,7 @@ Transaction(Dbi_Handle *handle, unsigned int depth,
             Dbi_TransactionCmd cmd, Dbi_Isolation isolation)
 {
     PgHandle   *pgHandle = handle->driverData;
-    Ns_DString  ds;
+    Tcl_DString ds;
     const char *sql;
 
     static const char *levels[] = {
@@ -676,7 +676,7 @@ Transaction(Dbi_Handle *handle, unsigned int depth,
         "serializable"      /* Dbi_Serializable */
     };
 
-    Ns_DStringInit(&ds);
+    Tcl_DStringInit(&ds);
 
     switch(cmd) {
 
@@ -703,11 +703,11 @@ Transaction(Dbi_Handle *handle, unsigned int depth,
 
     if (sql != NULL && Dbi_ExecDirect(handle, sql) != NS_OK) {
         SetException(handle, pgHandle->res);
-        Ns_DStringFree(&ds);
+        Tcl_DStringFree(&ds);
         return NS_ERROR;
     }
 
-    Ns_DStringFree(&ds);
+    Tcl_DStringFree(&ds);
 
     return NS_OK;
 }
