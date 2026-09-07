@@ -8,7 +8,7 @@ Compatibility: The module compiles with Tcl 8.5, 8.6 and 9.0.
 
 For building, you might use e.g.
 
-    PG=/usr/local/pg965 && make PGLIB=$PG/lib PGINCLUDE=$PG/include
+    PG=/usr/local/pg17 && make PGLIB=$PG/lib PGINCLUDE=$PG/include
 or
     PGPATH=postgresql17 && make PGLIB=/opt/local/lib/$PGPATH/ PGINCLUDE=/opt/local/include/$PGPATH/
 
